@@ -11,8 +11,9 @@ workspace "HUI_MCU_OutputLogger"
 
     filter "configurations:Debug"   defines { "DEBUG" }     symbols  "On"
     filter "configurations:Release" defines { "RELEASE" }   optimize "On"
-    filter "platforms:Win64"        architecture "x86_64"
-    -- filter "platforms:Win32"        architecture "x86"
+
+    filter "platforms:Win64"        architecture "x86_64"   defines  "__WINDOWS_MM__"
+    -- filter "platforms:Win32"        architecture "x86"      defines  "__WINDOWS_MM__"
     filter {}
 
 local outputdir = "%{cfg.shortname}"
@@ -27,8 +28,20 @@ project "HUI_MCU_OutputLogger"
     staticruntime "On"
     systemversion "latest"
 
+    -- Additional dependencies
+    links { "winmm.lib" }
+
+    -- Include directories
+    includedirs { "project/vendor" }
+
     -- Source files
-    files { "project/src/**.h", "project/src/**.cpp" }
+    files 
+    {
+        "project/src/**.h", 
+        "project/src/**.cpp",
+        "project/vendor/rtmidi/RtMidi.h",
+        "project/vendor/rtmidi/RtMidi.cpp"
+    }
 
     -- Build locations
     targetdir ("bin/" .. outputdir)
