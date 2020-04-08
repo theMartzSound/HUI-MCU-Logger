@@ -5,6 +5,8 @@
     Currently only supports Windows on Visual Studio 2019.
 ]]
 
+local boostLocation = "../../_Libraries/boost_1_72_0" -- ATTN: Replace this with the path to your own boost installation!
+
 workspace "HUI_MCU_OutputLogger"
     configurations { "Debug", "Release" }
     platforms { "Win64" } -- , "Win32" }
@@ -29,10 +31,12 @@ project "HUI_MCU_OutputLogger"
     systemversion "latest"
 
     -- Additional dependencies
-    links { "winmm.lib" }
+    filter "platforms:Win64"
+        links { "winmm.lib" }
+    filter {}
 
     -- Include directories
-    includedirs { "project/vendor" }
+    includedirs { "project/vendor", boostLocation }
 
     -- Source files
     files 
