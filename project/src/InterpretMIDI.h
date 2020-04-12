@@ -1,6 +1,6 @@
 #pragma once
 #include "rtmidi/RtMidi.h"
 
-void handleHUIInbound(RtMidiIn* port);
+void handleHUIInbound(double deltatime, std::vector< unsigned char >* message, void* userData);
 
-void handleMCUInbound(RtMidiIn* port);
+void handleMCUInbound(double deltatime, std::vector< unsigned char >* message, void* userData);

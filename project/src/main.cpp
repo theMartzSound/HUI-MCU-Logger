@@ -1,5 +1,4 @@
 #include <iostream>
-#include <thread>
 #include "rtmidi/RtMidi.h"
 
 #include "PortSelection.h"
@@ -19,28 +18,6 @@ RtMidiIn* HUI_In = nullptr;   // HUI protocol input port
 RtMidiIn* MCU_In = nullptr;   // MCU protocol input port
 RtMidiOut* HUI_Out = nullptr; // HUI protocol output port
 RtMidiOut* MCU_Out = nullptr; // MCU protocol output port
-
-static bool looping = true;
-void logHUI()
-{
-    using namespace std::literals::chrono_literals;
-
-    while (looping)
-    {
-        handleHUIInbound(HUI_In);
-        std::this_thread::sleep_for(20ms);
-    }
-}
-void logMCU()
-{
-    using namespace std::literals::chrono_literals;
-
-    while (looping)
-    {
-        handleMCUInbound(MCU_In);
-        std::this_thread::sleep_for(20ms);
-    }
-}
 
 void cleanup()
 {
@@ -91,15 +68,23 @@ int main()
         return EXIT_FAILURE;
     }
 
-    // Log until the user presses Enter
     std::cout << "Logging messages.  Press Enter to stop." << std::endl;
-    std::thread HUIlogger(logHUI);
-    std::thread MCUlogger(logMCU);
-    std::cin.get();
-    looping = false;
-    HUIlogger.join();
-    MCUlogger.join();
 
+    // Register callbacks
+    // HUI
+    std::vector<unsigned char> message;
+    HUI_In->getMessage(&message);
+    while (message.size() > 0)
+        HUI_In->getMessage(&message); //clear the queue
+    HUI_In->setCallback(&handleHUIInbound);
+    // MCU
+    MCU_In->getMessage(&message);
+    while (message.size() > 0)
+        MCU_In->getMessage(&message); //clear the queue
+    MCU_In->setCallback(&handleMCUInbound);
+
+    // Logging will happen in other threads until user presses Enter
+    std::cin.get();
     cleanup();
     std::cout << "Logging terminated.  Press Enter again to quit.";
     std::cin.get();
