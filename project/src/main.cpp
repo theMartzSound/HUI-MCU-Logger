@@ -1,9 +1,9 @@
 #include <iostream>
-//#include <string>
-//#include <cstdlib>
-//#include <typeinfo>
+#include <thread>
 #include "rtmidi/RtMidi.h"
+
 #include "PortSelection.h"
+#include "InterpretMIDI.h"
 
 /*  HUI/MCU Output Logger
     
@@ -14,53 +14,55 @@
     modified to listen for other messages in these protocols.
 */
 
-std::vector<unsigned char> message;
+/* Port handles */
+RtMidiIn* HUI_In = nullptr;   // HUI protocol input port
+RtMidiIn* MCU_In = nullptr;   // MCU protocol input port
+RtMidiOut* HUI_Out = nullptr; // HUI protocol output port
+RtMidiOut* MCU_Out = nullptr; // MCU protocol output port
 
-// Sleep methods
-#ifdef __WINDOWS_MM__
-#include <windows.h> // Needed for Sleep().
-#define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
-#endif
-
-void HUICallback(double deltaTime, std::vector<unsigned char>* message, void* userData)
+static bool looping = true;
+void logHUI()
 {
-    std::cout << "HUI message: ";
-    for (auto it = message->begin(); it != message->end(); ++it)
-        std::cout << std::hex << (int)*it << " ";
-    std::cout << std::endl;
-    //std::cout << std::endl << "* Stamp = " << deltaTime << std::endl;
+    using namespace std::literals::chrono_literals;
 
-    // TODO: Fix ordering problem when Nuendo launches and closes
-    // TODO: Log output to external file
+    while (looping)
+    {
+        handleHUIInbound(HUI_In);
+        std::this_thread::sleep_for(20ms);
+    }
+}
+void logMCU()
+{
+    using namespace std::literals::chrono_literals;
+
+    while (looping)
+    {
+        handleMCUInbound(MCU_In);
+        std::this_thread::sleep_for(20ms);
+    }
 }
 
-void MCUCallback(double deltaTime, std::vector<unsigned char>* message, void* userData)
+void cleanup()
 {
-    std::cout << "HUI message: ";
-    for (auto it = message->begin(); it != message->end(); ++it)
-        std::cout << std::hex << (int)*it << " " << std::endl;
-    std::cout << std::endl;
-	//std::cout << std::endl << "* Stamp = " << deltaTime << std::endl;
+    delete HUI_In;  // HUI protocol input port
+    delete MCU_In;  // MCU protocol input port
+    delete HUI_Out; // HUI protocol output port
+    delete MCU_Out; // MCU protocol output port
 }
 
 int main()
 {
-    /* Port handles */
-    RtMidiIn* HUI_In = 0;   // HUI protocol input port
-    RtMidiIn* MCU_In = 0;   // MCU protocol input port
-    RtMidiOut* HUI_Out = 0; // HUI protocol output port
-    RtMidiOut* MCU_Out = 0; // MCU protocol output port
-
     // Construct the handles
     try {
-        HUI_In = new RtMidiIn();
-        MCU_In = new RtMidiIn();
+        HUI_In = new RtMidiIn(RtMidi::UNSPECIFIED, "HUI Input Client", 200U);
+        MCU_In = new RtMidiIn(RtMidi::UNSPECIFIED, "MCU Input Client", 200U);
         HUI_Out = new RtMidiOut();
         MCU_Out = new RtMidiOut();
     }
     catch (RtMidiError & e) {
         e.printMessage();
-        goto cleanup;
+        cleanup();
+        return EXIT_FAILURE;
     }
 
     // Unignore SysEx messages.  Ignore timing and active sensing messages.
@@ -70,42 +72,37 @@ int main()
     // Open MIDI ports
     try {
         std::cout << "\nSetting up HUI IN..." << std::endl;
-        if (!openMIDIPort(HUI_In)) goto cleanup;
+        openMIDIPort(HUI_In);
         std::cout << "\nSetting up MCU IN..." << std::endl;
-        if (!openMIDIPort(MCU_In)) goto cleanup;
+        openMIDIPort(MCU_In);
         std::cout << "\nSetting up HUI OUT..." << std::endl;
-        if (!openMIDIPort(HUI_Out)) goto cleanup;
+        openMIDIPort(HUI_Out);
         std::cout << "\nSetting up MCU OUT..." << std::endl;
-        if (!openMIDIPort(MCU_Out)) goto cleanup;
+        openMIDIPort(MCU_Out);
     }
     catch (RtMidiError & e) {
         e.printMessage();
-        goto cleanup;
+        cleanup();
+        return EXIT_FAILURE;
+    }
+    catch (NoPorts & e) {
+        std::cout << e.what() << std::endl;
+        cleanup();
+        return EXIT_FAILURE;
     }
 
-    // Set callback functions
-    HUI_In->getMessage(&message);
-    while (message.size() > 0)
-		HUI_In->getMessage(&message); //clear the queue
-    HUI_In->setCallback(&HUICallback);
-
-    MCU_In->getMessage(&message);
-    while (message.size() > 0)
-        MCU_In->getMessage(&message); //clear the queue
-    MCU_In->setCallback(&MCUCallback);
-
-
     // Log until the user presses Enter
-    std::cout << "Logging messages.  Press Enter to quit." << std::endl;
+    std::cout << "Logging messages.  Press Enter to stop." << std::endl;
+    std::thread HUIlogger(logHUI);
+    std::thread MCUlogger(logMCU);
+    std::cin.get();
+    looping = false;
+    HUIlogger.join();
+    MCUlogger.join();
+
+    cleanup();
+    std::cout << "Logging terminated.  Press Enter again to quit.";
     std::cin.get();
 
-    // Clean up
-    // TODO: eliminate use of "goto:".
-cleanup:
-    delete HUI_In;  // HUI protocol input port
-    delete MCU_In;  // MCU protocol input port
-    delete HUI_Out; // HUI protocol output port
-    delete MCU_Out; // MCU protocol output port
-
-    return 0;
+    return EXIT_SUCCESS;
 }

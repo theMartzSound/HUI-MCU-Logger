@@ -1,77 +1,51 @@
 #include <iostream>
 #include <string>
-#include <sstream>
 #include "boost/lexical_cast.hpp"
 
+#include "ConsoleHelpers.h"
 #include "PortSelection.h"
 
-bool openMIDIPort(RtMidi* rtmidi)
+inline const char* NoInputPorts::what() const throw() { return "No MIDI input ports were detected!  Aborting..."; }
+inline const char* NoOutputPorts::what() const throw() { return "No MIDI output ports were detected!  Aborting..."; }
+
+void printPortNames(unsigned int portCount, RtMidi* rtmidi)
 {
-    std::string input;
+    for (unsigned int i = 0; i < portCount; i++)
+        std::cout << i << ": " << rtmidi->getPortName(i) << std::endl;
+}
 
-    // Optionally create a virtual MIDI port (Unix only) ------------------------------------------
+void openMIDIPort(RtMidi* rtmidi)
+{
+    chelp::hrule();
+
     #ifndef __WINDOWS_MM__
-
-    while (true)
-	{
-		std::cout << "Establish a new virtual port? [y/n] ";
-		std::getline(std::cin, input);
-
-		if (input == "y" || input == "Y") 
-        {
-            std::cout << "Enter a port name: ";
-            std::getline(std::cin, input);
-			rtmidi->openVirtualPort(input.c_str());
-            std::cout << "Port \"" << input.c_str() << "\" opened!" << std::endl;
-			return true;
-		}
-        else if (input == "n" || input == "N")
-        {
-            break;
-        }
-        std::cout << "Invalid input.  Please respond with [y/n] selection." << std::endl;
-	}
+    // Optionally create a virtual MIDI port (Unix only)
+    if (chelp::confirmprompt("Establish a new virtual port? [y/n] "))
+    {
+        std::string input;
+        std::cout << "Enter a port name: ";
+        std::getline(std::cin, input);
+        rtmidi->openVirtualPort(input.c_str());
+        std::cout << "Port \"" << input.c_str() << "\" opened!" << std::endl;
+        return;
+    }
     #endif
 
-    // Choose an existing port --------------------------------------------------------------------
+    // Check for available ports
     unsigned int portCount = rtmidi->getPortCount();
-    unsigned int i = -1;
-
-    // No ports available
     if (portCount == 0) {
         if (typeid(*rtmidi) == typeid(RtMidiIn))
-            std::cout << "No input ports detected!" << std::endl;
+            throw NoInputPorts();
         else
-            std::cout << "No output ports detected!" << std::endl;
-        return false;
+            throw NoOutputPorts();
     }
 
-    std::cout << "------------------------------------" << std::endl;
+    // Pick a port
+    printPortNames(portCount, rtmidi);
+    unsigned int selection = chelp::picknumber(portCount, "Select a port [#]: ");
+    // TODO: Handle if a previously selected port is chosen
 
-    // List available ports
-	for (unsigned int i = 0; i < portCount; i++)
-        std::cout << i << ": " << rtmidi->getPortName(i) << std::endl;
-
-    // Select a port
-    while (true)
-    {
-        std::cout << "Select a port [#]: ";
-        std::getline(std::cin, input);
-
-		try {
-            i = boost::lexical_cast<int>(input);
-            if (i >= portCount)
-                std::cout << "Invalid selection.  Pick a valid port." << std::endl;
-            else
-                break;
-		}
-        catch (boost::bad_lexical_cast const& e) {
-            std::cout << "Invalid input.  Enter the number of the port to open." << std::endl;
-        }
-    }
-
-    // Victory message
-    rtmidi->openPort(i);
-    std::cout << "Port \"" << rtmidi->getPortName(i) << "\" opened!" << std::endl;
-    return true;
+    // Open port
+    rtmidi->openPort(selection);
+    std::cout << "Port \"" << rtmidi->getPortName(selection) << "\" opened!" << std::endl;
 }

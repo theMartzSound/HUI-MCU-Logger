@@ -1,4 +1,5 @@
 #pragma once
+#include <exception>
 #include "rtmidi/RtMidi.h"
 
 /*	PortSelection
@@ -9,4 +10,22 @@
 // - May throw RtMidiError exceptions.
 // - Throws an exception if there are no ports available. (TODO)
 // - Throws an exception if the user chooses to create a virtual port (TODO)
-bool openMIDIPort(RtMidi* rtmidi);
+
+class NoPorts : public std::exception
+{
+public:
+	virtual const char* what() const throw() = 0;
+};
+
+class NoInputPorts : public NoPorts
+{
+public:
+    virtual const char* what() const throw();
+};
+class NoOutputPorts : public NoPorts
+{
+public:
+    virtual const char* what() const throw();
+};
+
+void openMIDIPort(RtMidi* rtmidi);
