@@ -20,11 +20,11 @@ public:
 };
 
 // Thrown when no output MIDI ports are available.
-class NoOutputPorts : public NoPorts
-{
-public:
-    virtual const char* what() const throw();
-};
+//class NoOutputPorts : public NoPorts
+//{
+//public:
+//    virtual const char* what() const throw();
+//};
 
 // Prompts the user to pick a port and opens it.
 // - On Unix systems, optionally allows user to generate a virtual port.

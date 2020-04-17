@@ -6,7 +6,7 @@
 #include "PortSelection.h"
 
 inline const char* NoInputPorts::what() const throw() { return "No MIDI input ports were detected!  Aborting..."; }
-inline const char* NoOutputPorts::what() const throw() { return "No MIDI output ports were detected!  Aborting..."; }
+//inline const char* NoOutputPorts::what() const throw() { return "No MIDI output ports were detected!  Aborting..."; }
 
 void printPortNames(unsigned int portCount, RtMidi* rtmidi)
 {
@@ -34,10 +34,10 @@ void openMIDIPort(RtMidi* rtmidi)
     // Check for available ports
     unsigned int portCount = rtmidi->getPortCount();
     if (portCount == 0) {
-        if (typeid(*rtmidi) == typeid(RtMidiIn))
+        //if (typeid(*rtmidi) == typeid(RtMidiIn))
             throw NoInputPorts();
-        else
-            throw NoOutputPorts();
+        //else
+        //    throw NoOutputPorts();
     }
 
     // Pick a port

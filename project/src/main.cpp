@@ -16,15 +16,15 @@
 /* Port handles */
 RtMidiIn* HUI_In = nullptr;   // HUI protocol input port
 RtMidiIn* MCU_In = nullptr;   // MCU protocol input port
-RtMidiOut* HUI_Out = nullptr; // HUI protocol output port
-RtMidiOut* MCU_Out = nullptr; // MCU protocol output port
+//RtMidiOut* HUI_Out = nullptr; // HUI protocol output port
+//RtMidiOut* MCU_Out = nullptr; // MCU protocol output port
 
 void cleanup()
 {
     delete HUI_In;  // HUI protocol input port
     delete MCU_In;  // MCU protocol input port
-    delete HUI_Out; // HUI protocol output port
-    delete MCU_Out; // MCU protocol output port
+    //delete HUI_Out; // HUI protocol output port
+    //delete MCU_Out; // MCU protocol output port
 }
 
 int main()
@@ -33,8 +33,8 @@ int main()
     try {
         HUI_In = new RtMidiIn(RtMidi::UNSPECIFIED, "HUI Input Client", 200U);
         MCU_In = new RtMidiIn(RtMidi::UNSPECIFIED, "MCU Input Client", 200U);
-        HUI_Out = new RtMidiOut();
-        MCU_Out = new RtMidiOut();
+        //HUI_Out = new RtMidiOut();
+        //MCU_Out = new RtMidiOut();
     }
     catch (RtMidiError & e) {
         e.printMessage();
@@ -52,10 +52,10 @@ int main()
         openMIDIPort(HUI_In);
         std::cout << "\nSetting up MCU IN..." << std::endl;
         openMIDIPort(MCU_In);
-        std::cout << "\nSetting up HUI OUT..." << std::endl;
-        openMIDIPort(HUI_Out);
-        std::cout << "\nSetting up MCU OUT..." << std::endl;
-        openMIDIPort(MCU_Out);
+        //std::cout << "\nSetting up HUI OUT..." << std::endl;
+        //openMIDIPort(HUI_Out);
+        //std::cout << "\nSetting up MCU OUT..." << std::endl;
+        //openMIDIPort(MCU_Out);
     }
     catch (RtMidiError & e) {
         e.printMessage();
