@@ -2,7 +2,7 @@
 #include "rtmidi/RtMidi.h"
 
 #include "PortSelection.h"
-#include "InterpretMIDI.h"
+#include "MIDI/InterpretMIDI.h"
 
 /*  HUI/MCU Output Logger
     
