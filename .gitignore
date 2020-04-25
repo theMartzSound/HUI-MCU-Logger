@@ -8,3 +8,6 @@
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user
+
+# Output (CSV) files
+**.csv

@@ -1,66 +1,94 @@
 #include "InterpretMCU.h"
+
 #include <iostream>
-#include <time.h>
+#include <fstream>
+
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace MCU_MIDI
 {
-	time_t rawTime;
-	struct tm* processedTime;
-	char timeString[11];
+	std::ofstream logFile;
+	#define LOGPATH "log.csv"
+
+	std::chrono::system_clock::time_point now_tp;
+	std::chrono::milliseconds now_ms;
+	std::time_t now_c;
+	std::stringstream now_sstream;
+
 	void updateTime()
 	{
-		time(&rawTime);
-		processedTime = localtime(&rawTime);
-		strftime(timeString, 11, "[%T]", processedTime);
+		now_tp = std::chrono::system_clock::now();
+		now_c = std::chrono::system_clock::to_time_t(now_tp);
+		now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now_tp.time_since_epoch()) % 1000;
+
+		now_sstream.str(std::string()); //clear contents
+		now_sstream.clear(); //reset error flags
+		now_sstream << std::put_time(std::localtime(&now_c), "%T:") << now_ms.count();
 	}
 
 	void NoteOn(unsigned int channel, unsigned int notenumber, unsigned int velocity)
 	{
 		updateTime(); //update timestamp
+		logFile.open(LOGPATH, std::ios_base::app);
 
 		switch (velocity)
 		{
 		case 0x00:
-			std::cout << timeString << " (MCU) LED Off.  LED ID: " << notenumber << std::endl;
+			logFile << "MCU," << now_sstream.str() << ",LED Off," << notenumber << std::endl;
 			break;
 		case 0x01:
-			std::cout << timeString << " (MCU) LED Blinking.  LED ID: " << notenumber << std::endl;
+			logFile << "MCU," << now_sstream.str() << ",LED Blinking," << notenumber << std::endl;
 			break;
 		case 0x7F:
-			std::cout << timeString << " (MCU) LED On.  LED ID: " << notenumber << std::endl;
+			logFile << "MCU," << now_sstream.str() << ",LED On," << notenumber << std::endl;
 			break;
 		}
+	
+		logFile.close();
 	}
 
 	void CC(unsigned int channel, unsigned int ccnumber, unsigned int value)
 	{
 		updateTime(); //update timestamp
+		logFile.open(LOGPATH, std::ios_base::app);
 
 		if (ccnumber & 0x30)
-			std::cout << timeString << " (MCU) V-Pot Ring #" << (ccnumber & 0x0F) << ": value = " << value << std::endl;
+			logFile << "MCU," << now_sstream.str() << ",V-Pot Ring," << (ccnumber & 0x0F) << "," << value << std::endl;
 		else if (ccnumber & 0x40)
-			std::cout << timeString << " (MCU) Timecode display character #" << (ccnumber & 0x0F) << ": value = " << value << std::endl;
+			logFile << "MCU," << now_sstream.str() << ",Timecode Character," << (ccnumber & 0x0F) << "," << value << std::endl;
+	
+		logFile.close();
 	}
 
 	void ChannelPressure(unsigned int channel, unsigned int value)
 	{
 		updateTime(); //update timestamp
+		logFile.open(LOGPATH, std::ios_base::app);
 
-		std::cout << timeString << " (MCU) Meter LED #" << (value & 0x70 >> 4) << ": value = " << (value & 0x0F) << std::endl;
+		logFile << "MCU," << now_sstream.str() << ",VU Lamp," << (value & 0x70 >> 4) << "," << (value & 0x0F) << std::endl;
+	
+		logFile.close();
 	}
 
 	void PitchBend(unsigned int channel, unsigned int value)
 	{
 		updateTime(); //update timestamp
+		logFile.open(LOGPATH, std::ios_base::app);
 
 		unsigned int faderVal = value >> 4; //Faders are 10-bit, and PB is 14-bit. Rightmost four bits are discarded
-		std::cout << timeString << " (MCU) Fader #" << channel << ": value = " << faderVal << std::endl;
+		logFile << "MCU," << now_sstream.str() << ",Fader Motor," << channel << "," << faderVal << std::endl;
+	
+		logFile.close();
 	}
 
 	void SysEx()
 	{
 		// unused so far
-		updateTime(); //update timestamp
-		std::cout << timeString << " (MCU) SysEx: F0 ";
+		//updateTime(); //update timestamp
+		//logFile.open(LOGPATH, std::ios_base::app);
+		//logFile << "MCU," << timeString() << ",SysEx" << std::endl;
+		//logFile.close();
 	}
 }

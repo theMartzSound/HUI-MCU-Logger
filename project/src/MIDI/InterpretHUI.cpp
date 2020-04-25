@@ -1,17 +1,31 @@
 #include "InterpretHUI.h"
+
 #include <iostream>
-#include <time.h>
+#include <fstream>
+
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace HUI_MIDI
 {
-	time_t rawTime;
-	struct tm* processedTime;
-	char timeString[11];
+	std::ofstream logFile;
+	#define LOGPATH "log.csv"
+
+	std::chrono::system_clock::time_point now_tp;
+	std::chrono::milliseconds now_ms;
+	std::time_t now_c;
+	std::stringstream now_sstream;
+
 	void updateTime()
 	{
-		time(&rawTime);
-		processedTime = localtime(&rawTime);
-		strftime(timeString, 11, "[%T]", processedTime);
+		now_tp = std::chrono::system_clock::now();
+		now_c = std::chrono::system_clock::to_time_t(now_tp);
+		now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now_tp.time_since_epoch()) % 1000;
+
+		now_sstream.str(std::string()); //clear contents
+		now_sstream.clear(); //reset error flags
+		now_sstream << std::put_time(std::localtime(&now_c), "%T:") << now_ms.count();
 	}
 
 	unsigned int CurrentZone;
@@ -22,28 +36,34 @@ namespace HUI_MIDI
 	void NoteOn(unsigned int channel, unsigned int notenumber, unsigned int velocity)
 	{
 		updateTime(); //update timestamp
+		logFile.open(LOGPATH, std::ios_base::app);
 
-		if (notenumber == 0x00 && velocity == 0x00)
-			std::cout << timeString << " (HUI) Ping received" << std::endl;
+		if (notenumber == 0x00 && velocity == 0x00) {}
+			//logFile << "HUI," << now_sstream.str() << ",Ping received" << std::endl;
 		else
-			std::cout << timeString << " (HUI) Error: Non-ping Note On received in HUI port.  Note number = " << notenumber << ", velocity = " << velocity << "." << std::endl;
+			std::cout << "[" << now_sstream.str() << "] (HUI) Error: Non-ping Note On received.  Note number = " << notenumber << ", velocity = " << velocity << "." << std::endl;
+		
+		logFile.close();
 	}
 
 	void PolyphonicKeyPressure(unsigned int channel, unsigned int notenumber, unsigned int pressure)
 	{
 		updateTime(); //update timestamp
+		logFile.open(LOGPATH, std::ios_base::app);
 
-		std::cout << timeString << " (HUI) VU Meter #" << notenumber << ": ";
+		logFile << "HUI," << now_sstream.str() << ",VU Meter," << notenumber;
 		if (pressure & 0x10)
-			std::cout << "Left  ";
+			logFile << ",L" << (pressure & 0x0F) << std::endl;
 		else
-			std::cout << "Right ";
-		std::cout << (pressure & 0x0F) << std::endl;
+			logFile << ",R" << (pressure & 0x0F) << std::endl;
+	
+		logFile.close();
 	}
 
 	void CC(unsigned int channel, unsigned int ccnumber, unsigned int value)
 	{
 		updateTime(); //update timestamp
+		logFile.open(LOGPATH, std::ios_base::app);
 
 		switch (ccnumber & 0xF0)
 		{
@@ -57,7 +77,7 @@ namespace HUI_MIDI
 				if (ReceivedFaderMSB)
 				{
 					ReceivedFaderLSB = false;
-					std::cout << timeString << " (HUI) Warning: a fader MSB was unpaired.  Fader no: " << OperatingFaderNo << std::endl;
+					std::cout << "[" << now_sstream.str() << "] (HUI) Error: Unpaired fader MSB.  Fader no: " << OperatingFaderNo << std::endl;
 					OperatingFaderNo = ccnumber & 0x0F;
 				}
 				else
@@ -66,7 +86,7 @@ namespace HUI_MIDI
 					if (ReceivedFaderLSB)
 					{
 						ReceivedFaderLSB = false;
-						std::cout << timeString << " (HUI) Fader #" << OperatingFaderNo << ": value = " << ((PendingMSB << 3) + (PendingLSB >> 4)) << std::endl;
+						logFile << "HUI," << now_sstream.str() << ",Fader Motor," << OperatingFaderNo << "," << ((PendingMSB << 3) + (PendingLSB >> 4)) << std::endl;
 					}
 					else
 						ReceivedFaderMSB = true;
@@ -74,15 +94,15 @@ namespace HUI_MIDI
 			}
 			break;
 		case 0x10: // V-Pot rings
-			std::cout << timeString << " (HUI) V-Pot #" << (ccnumber & 0x0F) << ": configuration =" << value << std::endl;
+			logFile << "HUI," << now_sstream.str() << ",V-Pot Ring," << (ccnumber & 0x0F) << "," << value << std::endl;
 			break;
 		case 0x20: // Switch port (LEDs) or LSB (Faders)
 			if (ccnumber == 0x2C)
 			{
 				if (value & 0x40)
-					std::cout << timeString << " (HUI) LED On:  zone = " << CurrentZone << ", port = " << (value & 0x0F) << std::endl;
+					logFile << "HUI," << now_sstream.str() << ",LED On,Z" << CurrentZone << "P" << (value & 0x0F) << std::endl;
 				else
-					std::cout << timeString << " (HUI) LED Off: zone = " << CurrentZone << ", port = " << (value & 0x0F) << std::endl;
+					logFile << "HUI," << now_sstream.str() << ",LED Off,Z" << CurrentZone << "P" << (value & 0x0F) << std::endl;
 			}
 			else // Faders
 			{
@@ -91,7 +111,7 @@ namespace HUI_MIDI
 				if (ReceivedFaderLSB)
 				{
 					ReceivedFaderMSB = false;
-					std::cout << timeString << " (HUI) Warning: a fader LSB was unpaired.  Fader no: " << OperatingFaderNo << std::endl;
+					std::cout << "[" << now_sstream.str() << "] (HUI) Error: Unpaired Fader LSB.  Fader no: " << OperatingFaderNo << std::endl;
 					OperatingFaderNo = ccnumber & 0x0F;
 				}
 				else
@@ -100,7 +120,7 @@ namespace HUI_MIDI
 					if (ReceivedFaderMSB)
 					{
 						ReceivedFaderMSB = false;
-						std::cout << timeString << " (HUI) Fader #" << OperatingFaderNo << ": value = " << ((PendingMSB << 3) + (PendingLSB >> 4)) << std::endl;
+						logFile << "HUI," << now_sstream.str() << ",Fader Motor," << OperatingFaderNo << "," << ((PendingMSB << 3) + (PendingLSB >> 4)) << std::endl;
 					}
 					else
 						ReceivedFaderLSB = true;
@@ -108,15 +128,19 @@ namespace HUI_MIDI
 			}
 			break;
 		default:
-			std::cout << timeString << " (HUI) Error: Unhandled CC message in HUI port.  CC = " << ccnumber << ", value = " << value << std::endl;
+			std::cout << "[" << now_sstream.str() << "] (HUI) Error: Unhandled CC message.  CC = " << ccnumber << ", value = " << value << std::endl;
 			break;
 		}
+	
+		logFile.close();
 	}
 
 	void SysEx()
 	{
 		// unused so far
-		updateTime(); //update timestamp
-		std::cout << timeString << " (HUI) SysEx: F0 ";
+		//updateTime(); //update timestamp
+		//logFile.open(LOGPATH, std::ios_base::app);
+		//logFile << "HUI," << now_sstream.str() << "," << ",SysEx" << std::endl;
+		//logFile.close();
 	}
 }

@@ -112,9 +112,9 @@ void handleHUIInbound(double deltatime, std::vector< unsigned char >* message, v
 	case MIDIRunningStatus::SysEx:
 		// TODO: Handle SysEx
 		HUI_MIDI::SysEx();
-		for (; it != message->end(); ++it)
-			std::cout << std::hex << unsigned int(*it) << " ";
-		std::cout << std::endl;
+		//for (; it != message->end(); ++it)
+		//	std::cout << std::hex << unsigned int(*it) << " ";
+		//std::cout << std::endl;
 		break;
 	default:
 		std::cout << "Warning: unhandled message.  Running status = \"" << MIDIRunningStatus_tostr[(unsigned int)HUIRunningStatus] << "\", bytes: ";
@@ -123,8 +123,6 @@ void handleHUIInbound(double deltatime, std::vector< unsigned char >* message, v
 		std::cout << std::endl;
 		break;
 	}
-
-	// TODO: Log output to external file
 
 	mtx.unlock();
 }
@@ -225,9 +223,9 @@ void handleMCUInbound(double deltatime, std::vector< unsigned char >* message, v
 	case MIDIRunningStatus::SysEx:
 		// TODO: Handle SysEx
 		MCU_MIDI::SysEx();
-		for (; it != message->end(); ++it)
-			std::cout << std::hex << unsigned int(*it) << " ";
-		std::cout << std::endl;
+		//for (; it != message->end(); ++it)
+		//	std::cout << std::hex << unsigned int(*it) << " ";
+		//std::cout << std::endl;
 		break;
 	default:
 		std::cout << "Warning: unhandled message.  Running status = \"" << MIDIRunningStatus_tostr[(unsigned int)HUIRunningStatus] << "\", bytes: ";
@@ -236,8 +234,6 @@ void handleMCUInbound(double deltatime, std::vector< unsigned char >* message, v
 		std::cout << std::endl;
 		break;
 	}
-
-    // TODO: Log output to external file
 
 	mtx.unlock();
 }
