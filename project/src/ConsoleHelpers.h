@@ -52,7 +52,7 @@ namespace chelp
                 else
                     break;
             }
-            catch (boost::bad_lexical_cast const& e) {
+            catch (boost::bad_lexical_cast) {
                 std::cout << "Invalid input.  ";
             }
         }
