@@ -31,10 +31,6 @@ unsigned int MCUchannel;
 void handleHUIInbound(double deltatime, std::vector< unsigned char >* message, void* userData)
 {
 	mtx.lock();
-	
-	//for (auto it = message->begin(); it != message->end(); ++it)
-	//	std::cout << std::hex << (unsigned int)*it << " ";
-	//std::cout << std::endl;
     
 	auto it = message->begin();
 
@@ -83,7 +79,7 @@ void handleHUIInbound(double deltatime, std::vector< unsigned char >* message, v
 		++it;
 	}
 	else
-		std::cout << "Running status used: " << std::hex << MIDIRunningStatus_tostr[(unsigned int)HUIRunningStatus] << std::endl;
+		std::cout << "(HUI) Running status used: " << std::hex << MIDIRunningStatus_tostr[(unsigned int)HUIRunningStatus] << std::endl;
 
 
 	// Handle rest of message
@@ -114,9 +110,8 @@ void handleHUIInbound(double deltatime, std::vector< unsigned char >* message, v
 		}
 		break;
 	case MIDIRunningStatus::SysEx:
-		std::cout << "SysEx: F0 ";
 		// TODO: Handle SysEx
-
+		HUI_MIDI::SysEx();
 		for (; it != message->end(); ++it)
 			std::cout << std::hex << unsigned int(*it) << " ";
 		std::cout << std::endl;
@@ -138,12 +133,6 @@ void handleHUIInbound(double deltatime, std::vector< unsigned char >* message, v
 void handleMCUInbound(double deltatime, std::vector< unsigned char >* message, void* userData)
 {
 	mtx.lock();
-
-	std::cout << "(MCU) ";
-
-	//for (auto it = message->begin(); it != message->end(); ++it)
-	//	std::cout << std::hex << (unsigned int)*it << " ";
-	//std::cout << std::endl;
 	
 	auto it = message->begin();
 
@@ -196,7 +185,7 @@ void handleMCUInbound(double deltatime, std::vector< unsigned char >* message, v
 		++it;
 	}
 	else
-		std::cout << "Running status used: " << std::hex << MIDIRunningStatus_tostr[(unsigned int)MCURunningStatus] << std::endl;
+		std::cout << "(MCU) Running status used: " << std::hex << MIDIRunningStatus_tostr[(unsigned int)MCURunningStatus] << std::endl;
 
 
 	// Handle rest of message
@@ -234,9 +223,8 @@ void handleMCUInbound(double deltatime, std::vector< unsigned char >* message, v
 		}
 		break;
 	case MIDIRunningStatus::SysEx:
-		std::cout << "SysEx: F0 ";
 		// TODO: Handle SysEx
-
+		MCU_MIDI::SysEx();
 		for (; it != message->end(); ++it)
 			std::cout << std::hex << unsigned int(*it) << " ";
 		std::cout << std::endl;

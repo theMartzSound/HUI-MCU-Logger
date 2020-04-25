@@ -1,42 +1,66 @@
 #include "InterpretMCU.h"
 #include <iostream>
+#include <time.h>
 
-void MCU_MIDI::NoteOn(unsigned int channel, unsigned int notenumber, unsigned int velocity)
+namespace MCU_MIDI
 {
-	switch (velocity)
+	time_t rawTime;
+	struct tm* processedTime;
+	char timeString[11];
+	void updateTime()
 	{
-	case 0x00:
-		std::cout << "LED Off.  LED ID: " << notenumber << std::endl;
-		break;
-	case 0x01:
-		std::cout << "LED Blinking.  LED ID: " << notenumber << std::endl;
-		break;
-	case 0x7F:
-		std::cout << "LED On.  LED ID: " << notenumber << std::endl;
-		break;
+		time(&rawTime);
+		processedTime = localtime(&rawTime);
+		strftime(timeString, 11, "[%T]", processedTime);
 	}
-}
 
-void MCU_MIDI::CC(unsigned int channel, unsigned int ccnumber, unsigned int value)
-{
-	if (ccnumber & 0x30)
-		std::cout << "V-Pot Ring #" << (ccnumber & 0x0F) << ".  Value: " << value << std::endl;
-	else if (ccnumber & 0x40)
-		std::cout << "Timecode display character #" << (ccnumber & 0x0F) << ".  Value: " << value << std::endl;
-}
+	void NoteOn(unsigned int channel, unsigned int notenumber, unsigned int velocity)
+	{
+		updateTime(); //update timestamp
 
-void MCU_MIDI::ChannelPressure(unsigned int channel, unsigned int value)
-{
-	std::cout << "Meter Bridge #" << (value & 0x70 >> 4) << ".  Value: " << (value & 0x0F) << std::endl;
-}
+		switch (velocity)
+		{
+		case 0x00:
+			std::cout << timeString << " (MCU) LED Off.  LED ID: " << notenumber << std::endl;
+			break;
+		case 0x01:
+			std::cout << timeString << " (MCU) LED Blinking.  LED ID: " << notenumber << std::endl;
+			break;
+		case 0x7F:
+			std::cout << timeString << " (MCU) LED On.  LED ID: " << notenumber << std::endl;
+			break;
+		}
+	}
 
-void MCU_MIDI::PitchBend(unsigned int channel, unsigned int value)
-{
-	unsigned int faderVal = value >> 4; //Faders are 10-bit, and PB is 14-bit. Rightmost four bits are discarded
-	std::cout << "Fader #" << channel << ".  Value: " << faderVal << std::endl;
-}
+	void CC(unsigned int channel, unsigned int ccnumber, unsigned int value)
+	{
+		updateTime(); //update timestamp
 
-void MCU_MIDI::SysEx()
-{
-	// unused so far
+		if (ccnumber & 0x30)
+			std::cout << timeString << " (MCU) V-Pot Ring #" << (ccnumber & 0x0F) << ": value = " << value << std::endl;
+		else if (ccnumber & 0x40)
+			std::cout << timeString << " (MCU) Timecode display character #" << (ccnumber & 0x0F) << ": value = " << value << std::endl;
+	}
+
+	void ChannelPressure(unsigned int channel, unsigned int value)
+	{
+		updateTime(); //update timestamp
+
+		std::cout << timeString << " (MCU) Meter LED #" << (value & 0x70 >> 4) << ": value = " << (value & 0x0F) << std::endl;
+	}
+
+	void PitchBend(unsigned int channel, unsigned int value)
+	{
+		updateTime(); //update timestamp
+
+		unsigned int faderVal = value >> 4; //Faders are 10-bit, and PB is 14-bit. Rightmost four bits are discarded
+		std::cout << timeString << " (MCU) Fader #" << channel << ": value = " << faderVal << std::endl;
+	}
+
+	void SysEx()
+	{
+		// unused so far
+		updateTime(); //update timestamp
+		std::cout << timeString << " (MCU) SysEx: F0 ";
+	}
 }
