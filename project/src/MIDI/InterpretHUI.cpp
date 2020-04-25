@@ -56,7 +56,7 @@ namespace HUI_MIDI
 
 				if (ReceivedFaderMSB)
 				{
-					ReceivedFaderLSB == false;
+					ReceivedFaderLSB = false;
 					std::cout << timeString << " (HUI) Warning: a fader MSB was unpaired.  Fader no: " << OperatingFaderNo << std::endl;
 					OperatingFaderNo = ccnumber & 0x0F;
 				}
@@ -90,7 +90,7 @@ namespace HUI_MIDI
 
 				if (ReceivedFaderLSB)
 				{
-					ReceivedFaderMSB == false;
+					ReceivedFaderMSB = false;
 					std::cout << timeString << " (HUI) Warning: a fader LSB was unpaired.  Fader no: " << OperatingFaderNo << std::endl;
 					OperatingFaderNo = ccnumber & 0x0F;
 				}
